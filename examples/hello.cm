@@ -1,0 +1,11 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// hello.cm - Hello World program
+// Compile: ./common hello.cm hello.asm && nasm -f elf32 hello.asm && gcc -m32 hello.o -o hello
+
+void putchar(int32 c);
+void puts(uint8 *s);
+
+int32 main(void) {
+    puts("Hello, World!");
+    return 0;
+}

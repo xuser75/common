@@ -1,0 +1,159 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// linkedlist.cm - Linked list implementation
+// Demonstrates: structs simulated with arrays, complex pointer manipulation, memory layout
+
+void printf(uint8 *fmt);
+void *malloc(uint32 size);
+void free(void *ptr);
+
+// Node structure simulated as:
+// [0] = data (int32)
+// [4] = next pointer (int32*)
+// Total size: 8 bytes per node
+
+int32 *create_node(int32 value) {
+    int32 *node = (int32*)malloc(8);
+    node[0] = value;        // data
+    node[1] = 0;            // next = NULL
+    return node;
+}
+
+void insert_front(int32 **head, int32 value) {
+    int32 *new_node = create_node(value);
+    new_node[1] = (int32)(*head);  // new->next = head
+    *head = new_node;               // head = new_node
+}
+
+void insert_back(int32 **head, int32 value) {
+    int32 *new_node = create_node(value);
+    
+    if (*head == 0) {
+        *head = new_node;
+        return;
+    }
+    
+    int32 *current = *head;
+    while (current[1] != 0) {
+        current = (int32*)current[1];
+    }
+    current[1] = (int32)new_node;
+}
+
+int32 list_length(int32 *head) {
+    int32 count = 0;
+    int32 *current = head;
+    while (current != 0) {
+        count = count + 1;
+        current = (int32*)current[1];
+    }
+    return count;
+}
+
+void print_list(int32 *head) {
+    int32 *current = head;
+    printf("[");
+    while (current != 0) {
+        printf("%d", current[0]);
+        current = (int32*)current[1];
+        if (current != 0) printf(", ");
+    }
+    printf("]\n");
+}
+
+int32 find_value(int32 *head, int32 value) {
+    int32 *current = head;
+    int32 index = 0;
+    while (current != 0) {
+        if (current[0] == value) {
+            return index;
+        }
+        current = (int32*)current[1];
+        index = index + 1;
+    }
+    return -1;
+}
+
+void delete_value(int32 **head, int32 value) {
+    if (*head == 0) return;
+    
+    // Check if head node contains the value
+    if ((*head)[0] == value) {
+        int32 *temp = *head;
+        *head = (int32*)(*head)[1];
+        free(temp);
+        return;
+    }
+    
+    // Search for the value in remaining nodes
+    int32 *current = *head;
+    while (current[1] != 0) {
+        int32 *next = (int32*)current[1];
+        if (next[0] == value) {
+            current[1] = next[1];  // current->next = next->next
+            free(next);
+            return;
+        }
+        current = next;
+    }
+}
+
+void free_list(int32 *head) {
+    int32 *current = head;
+    while (current != 0) {
+        int32 *next = (int32*)current[1];
+        free(current);
+        current = next;
+    }
+}
+
+int32 main(void) {
+    int32 *list = 0;  // Empty list (NULL)
+    
+    printf("Linked List Demo\n");
+    printf("================\n\n");
+    
+    printf("Inserting at front: 3, 2, 1\n");
+    insert_front(&list, 3);
+    insert_front(&list, 2);
+    insert_front(&list, 1);
+    print_list(list);
+    
+    printf("\nInserting at back: 4, 5, 6\n");
+    insert_back(&list, 4);
+    insert_back(&list, 5);
+    insert_back(&list, 6);
+    print_list(list);
+    
+    printf("\nList length: %d\n", list_length(list));
+    
+    printf("\nSearching for values:\n");
+    int32 search_vals[4] = { 1, 4, 7, 5 };
+    for (int32 i = 0; i < 4; i = i + 1) {
+        int32 val = search_vals[i];
+        int32 pos = find_value(list, val);
+        if (pos >= 0) {
+            printf("  %d found at position %d\n", val, pos);
+        } else {
+            printf("  %d not found\n", val);
+        }
+    }
+    
+    printf("\nDeleting value 3\n");
+    delete_value(&list, 3);
+    print_list(list);
+    
+    printf("\nDeleting value 1 (head)\n");
+    delete_value(&list, 1);
+    print_list(list);
+    
+    printf("\nDeleting value 6 (tail)\n");
+    delete_value(&list, 6);
+    print_list(list);
+    
+    printf("\nFinal list length: %d\n", list_length(list));
+    
+    free_list(list);
+    printf("\nList freed\n");
+    
+    return 0;
+}

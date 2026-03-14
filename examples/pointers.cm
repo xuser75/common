@@ -1,0 +1,38 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// pointers.cm - Pointer operations
+// Demonstrates: pointers, pointer arithmetic, dereferencing
+
+void printf(uint8 *fmt);
+
+void swap(int32 *a, int32 *b) {
+    int32 temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int32 main(void) {
+    int32 x = 42;
+    int32 y = 17;
+    
+    printf("Before swap: x=%d, y=%d\n", x, y);
+    swap(&x, &y);
+    printf("After swap:  x=%d, y=%d\n", x, y);
+    
+    // Pointer arithmetic with arrays
+    int32 arr[5] = { 10, 20, 30, 40, 50 };
+    int32 *ptr = arr;
+    
+    printf("\nArray traversal with pointer arithmetic:\n");
+    for (int32 i = 0; i < 5; i = i + 1) {
+        printf("arr[%d] = %d (via pointer: %d)\n", i, arr[i], *(ptr + i));
+    }
+    
+    // Pointer to pointer
+    int32 value = 99;
+    int32 *p1 = &value;
+    int32 **p2 = &p1;
+    
+    printf("\nPointer to pointer: **p2 = %d\n", **p2);
+    
+    return 0;
+}

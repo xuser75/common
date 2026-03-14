@@ -1,0 +1,1024 @@
+// ============================================================
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+//  test_suite.cm  —  Extensive tests for the Common compiler
+//
+//  Build & run:
+//    gcc -o common common.c
+//    ./common test_suite.cm test_suite.asm
+//    nasm -f elf32 test_suite.asm -o test_suite.o
+//    gcc -m32 -no-pie test_suite.o -o test_suite
+//    ./test_suite
+//
+//  A passing run prints only "ALL TESTS PASSED".
+//  Any failure prints the failing test name and exits with 1.
+// ============================================================
+
+// --------------- C library declarations --------------------
+void printf(uint8* fmt);
+void exit(uint32 code);
+
+// --------------- Test harness ------------------------------
+uint32 g_tests_run    = 0;
+uint32 g_tests_failed = 0;
+
+// We call these with a string literal + an int; we use a
+// hand-rolled dispatcher because Common has no varargs.
+void print_str(uint8* s);
+void print_int(uint32 n);
+void print_nl();
+
+// Minimal wrappers around printf so we only need one extern
+void print_str(uint8* s) {
+    printf(s);
+}
+void print_int(uint32 n) {
+    // itoa into a local buffer and print
+    uint8 buf[32];
+    uint32 i = 30;
+    buf[31] = 0;
+    if (n == 0) {
+        buf[30] = 48;   // '0'
+        print_str(&buf[30]);
+        return;
+    }
+    while (n > 0) {
+        buf[i] = (n % 10) + 48;
+        n = n / 10;
+        i = i - 1;
+    }
+    i = i + 1;
+    print_str(&buf[i]);
+}
+void print_nl() {
+    printf("\n");
+}
+
+void assert_eq(uint8* name, uint32 got, uint32 expected) {
+    g_tests_run = g_tests_run + 1;
+    if (got != expected) {
+        g_tests_failed = g_tests_failed + 1;
+        print_str("FAIL: ");
+        print_str(name);
+        print_str("  got=");
+        print_int(got);
+        print_str("  expected=");
+        print_int(expected);
+        print_nl();
+    }
+}
+
+// ============================================================
+//  1. BASIC ARITHMETIC
+// ============================================================
+void test_arithmetic() {
+    uint32 a = 10;
+    uint32 b = 3;
+
+    assert_eq("add",        a + b,      13);
+    assert_eq("sub",        a - b,      7);
+    assert_eq("mul",        a * b,      30);
+    assert_eq("div",        a / b,      3);
+    assert_eq("mod",        a % b,      1);
+    assert_eq("neg",        0 - a,      4294967286);   // wrap-around uint32
+    assert_eq("add_chain",  1+2+3+4+5,  15);
+    assert_eq("precedence", 2+3*4,      14);
+    assert_eq("parens",     (2+3)*4,    20);
+    assert_eq("mixed",      10-2*3+1,   5);
+}
+
+// ============================================================
+//  2. BITWISE OPERATIONS
+// ============================================================
+void test_bitwise() {
+    uint32 x = 0xFF;
+    uint32 y = 0x0F;
+
+    assert_eq("band",   x & y,   15);
+    assert_eq("bor",    x | y,   255);
+    assert_eq("bxor",   x ^ y,   240);
+    assert_eq("bnot",   ~0,      4294967295);
+    assert_eq("shl",    1 << 4,  16);
+    assert_eq("shr",    256 >> 3, 32);
+    assert_eq("shl8",   0x01 << 8, 256);
+    assert_eq("shr_big",0x80000000 >> 1, 0x40000000);
+    assert_eq("xor_inv",0xDEADBEEF ^ 0xFFFFFFFF, 0x21524110);
+    assert_eq("and_mask",0xABCDEF & 0x00FF00, 0x00CD00);
+}
+
+// ============================================================
+//  3. COMPARISON & LOGICAL OPERATORS
+// ============================================================
+void test_comparisons() {
+    assert_eq("lt_true",   3 < 5,   1);
+    assert_eq("lt_false",  5 < 3,   0);
+    assert_eq("leq_eq",    4 <= 4,  1);
+    assert_eq("leq_less",  3 <= 4,  1);
+    assert_eq("leq_false", 5 <= 4,  0);
+    assert_eq("gt_true",   5 > 3,   1);
+    assert_eq("gt_false",  3 > 5,   0);
+    assert_eq("geq_eq",    4 >= 4,  1);
+    assert_eq("eq_true",   7 == 7,  1);
+    assert_eq("eq_false",  7 == 8,  0);
+    assert_eq("neq_true",  7 != 8,  1);
+    assert_eq("neq_false", 7 != 7,  0);
+
+    assert_eq("land_tt",   1 && 1,  1);
+    assert_eq("land_tf",   1 && 0,  0);
+    assert_eq("land_ft",   0 && 1,  0);
+    assert_eq("lor_ff",    0 || 0,  0);
+    assert_eq("lor_tf",    1 || 0,  1);
+    assert_eq("lnot_t",    !0,      1);
+    assert_eq("lnot_f",    !1,      0);
+    assert_eq("lnot_big",  !42,     0);
+}
+
+// ============================================================
+//  4. ASSIGNMENT OPERATORS
+// ============================================================
+void test_compound_assign() {
+    uint32 v = 10;
+    v += 5;   assert_eq("addeq",  v, 15);
+    v -= 3;   assert_eq("subeq",  v, 12);
+    v *= 2;   assert_eq("muleq",  v, 24);
+    v /= 4;   assert_eq("diveq",  v, 6);
+    v %= 4;   assert_eq("modeq",  v, 2);
+    v  = 0xFF;
+    v &= 0x0F; assert_eq("andeq", v, 15);
+    v |= 0xF0; assert_eq("oreq",  v, 255);
+    v ^= 0xFF; assert_eq("xoreq", v, 0);
+    v  = 1;
+    v <<= 3;   assert_eq("shleq", v, 8);
+    v >>= 1;   assert_eq("shreq", v, 4);
+}
+
+// ============================================================
+//  5. INCREMENT / DECREMENT
+// ============================================================
+void test_incdec() {
+    uint32 a = 5;
+    uint32 b;
+
+    b = a++;  assert_eq("post_inc_ret", b, 5);
+              assert_eq("post_inc_var", a, 6);
+
+    b = a--;  assert_eq("post_dec_ret", b, 6);
+              assert_eq("post_dec_var", a, 5);
+
+    b = ++a;  assert_eq("pre_inc_ret",  b, 6);
+              assert_eq("pre_inc_var",  a, 6);
+
+    b = --a;  assert_eq("pre_dec_ret",  b, 5);
+              assert_eq("pre_dec_var",  a, 5);
+}
+
+// ============================================================
+//  6. TERNARY OPERATOR
+// ============================================================
+void test_ternary() {
+    uint32 x = 10;
+    assert_eq("tern_true",   x > 5  ? 1 : 0, 1);
+    assert_eq("tern_false",  x < 5  ? 1 : 0, 0);
+    assert_eq("tern_value",  x > 5  ? x : 0, 10);
+    assert_eq("tern_nested", x > 5  ? (x > 8 ? 2 : 1) : 0, 2);
+    assert_eq("tern_in_expr",(x > 5 ? 3 : 7) + 10, 13);
+}
+
+// ============================================================
+//  7. IF / ELSE
+// ============================================================
+void test_if_else() {
+    uint32 r = 0;
+
+    if (1) r = 1;
+    assert_eq("if_true", r, 1);
+
+    if (0) r = 99;
+    assert_eq("if_no_exec", r, 1);
+
+    if (0) r = 0;
+    else   r = 2;
+    assert_eq("else_branch", r, 2);
+
+    // else-if chain
+    uint32 v = 5;
+    if      (v == 1) r = 10;
+    else if (v == 2) r = 20;
+    else if (v == 5) r = 50;
+    else             r = 99;
+    assert_eq("else_if_chain", r, 50);
+
+    // nested if
+    uint32 a = 3;
+    uint32 b = 7;
+    if (a < b) {
+        if (a < 5) r = 1;
+        else       r = 2;
+    } else {
+        r = 3;
+    }
+    assert_eq("nested_if", r, 1);
+}
+
+// ============================================================
+//  8. WHILE LOOP
+// ============================================================
+void test_while() {
+    uint32 i = 0;
+    uint32 sum = 0;
+    while (i < 10) {
+        sum += i;
+        i++;
+    }
+    assert_eq("while_sum", sum, 45);
+
+    // break
+    i = 0; sum = 0;
+    while (1) {
+        if (i == 5) break;
+        sum += i;
+        i++;
+    }
+    assert_eq("while_break", sum, 10);
+
+    // continue
+    i = 0; sum = 0;
+    while (i < 10) {
+        i++;
+        if (i % 2 == 0) continue;
+        sum += i;
+    }
+    assert_eq("while_continue", sum, 25);  // 1+3+5+7+9
+}
+
+// ============================================================
+//  9. FOR LOOP
+// ============================================================
+void test_for() {
+    uint32 sum = 0;
+    uint32 i;
+    for (i = 0; i < 10; i++) sum += i;
+    assert_eq("for_sum", sum, 45);
+
+    // for with decl
+    sum = 0;
+    for (uint32 j = 1; j <= 5; j++) sum += j;
+    assert_eq("for_decl", sum, 15);
+
+    // nested for
+    sum = 0;
+    for (uint32 a = 0; a < 4; a++)
+        for (uint32 b = 0; b < 4; b++)
+            sum++;
+    assert_eq("nested_for", sum, 16);
+
+    // break in for
+    sum = 0;
+    for (i = 0; i < 100; i++) {
+        if (i == 10) break;
+        sum += i;
+    }
+    assert_eq("for_break", sum, 45);
+
+    // continue in for
+    sum = 0;
+    for (i = 0; i < 10; i++) {
+        if (i % 2 != 0) continue;
+        sum += i;
+    }
+    assert_eq("for_continue", sum, 20);  // 0+2+4+6+8
+}
+
+// ============================================================
+//  10. SWITCH / CASE
+// ============================================================
+void test_switch() {
+    uint32 r;
+    uint32 v = 3;
+
+    switch (v) {
+        case 1: r = 10; break;
+        case 2: r = 20; break;
+        case 3: r = 30; break;
+        default: r = 99; break;
+    }
+    assert_eq("switch_hit", r, 30);
+
+    v = 7;
+    switch (v) {
+        case 1: r = 1; break;
+        case 2: r = 2; break;
+        default: r = 42; break;
+    }
+    assert_eq("switch_default", r, 42);
+
+    // fall-through (no break before next case)
+    v = 1;
+    r = 0;
+    switch (v) {
+        case 1: r += 1;
+        case 2: r += 2; break;
+        case 3: r += 4; break;
+    }
+    assert_eq("switch_fallthrough", r, 3);
+}
+
+// ============================================================
+//  11. FUNCTIONS — CALL, RETURN, RECURSION
+// ============================================================
+uint32 add(uint32 a, uint32 b) {
+    return a + b;
+}
+
+uint32 factorial(uint32 n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+uint32 fib(uint32 n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+uint32 gcd(uint32 a, uint32 b) {
+    while (b != 0) {
+        uint32 t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+void test_functions() {
+    assert_eq("fn_add",       add(3, 4),       7);
+    assert_eq("fn_add_zero",  add(0, 0),       0);
+    assert_eq("fn_fact_0",    factorial(0),    1);
+    assert_eq("fn_fact_1",    factorial(1),    1);
+    assert_eq("fn_fact_5",    factorial(5),    120);
+    assert_eq("fn_fact_10",   factorial(10),   3628800);
+    assert_eq("fn_fib_0",     fib(0),          0);
+    assert_eq("fn_fib_1",     fib(1),          1);
+    assert_eq("fn_fib_10",    fib(10),         55);
+    assert_eq("fn_gcd_12_8",  gcd(12, 8),      4);
+    assert_eq("fn_gcd_100_75",gcd(100, 75),    25);
+    assert_eq("fn_gcd_prime", gcd(17, 13),     1);
+}
+
+// ============================================================
+//  12. LOCAL ARRAYS
+// ============================================================
+void test_local_arrays() {
+    uint32 arr[8];
+    uint32 i;
+
+    // fill and read back
+    for (i = 0; i < 8; i++) arr[i] = i * i;
+    assert_eq("arr_0",  arr[0], 0);
+    assert_eq("arr_3",  arr[3], 9);
+    assert_eq("arr_7",  arr[7], 49);
+
+    // initialiser list
+    uint32 primes[5] = {2, 3, 5, 7, 11};
+    assert_eq("arr_init_0", primes[0], 2);
+    assert_eq("arr_init_4", primes[4], 11);
+
+    // sum via pointer walk
+    uint32 sum = 0;
+    for (i = 0; i < 5; i++) sum += primes[i];
+    assert_eq("arr_sum", sum, 28);
+
+    // uint8 array
+    uint8 bytes[4] = {10, 20, 30, 40};
+    assert_eq("u8arr_0", bytes[0], 10);
+    assert_eq("u8arr_3", bytes[3], 40);
+}
+
+// ============================================================
+//  13. POINTERS — BASIC ADDRESS / DEREFERENCE
+// ============================================================
+void test_pointers_basic() {
+    uint32 v = 42;
+    uint32* p = &v;
+
+    assert_eq("ptr_deref",     *p,        42);
+    assert_eq("ptr_deref_eq",  *p == v,   1);
+
+    *p = 99;
+    assert_eq("ptr_write",     v,         99);
+    assert_eq("ptr_write_p",   *p,        99);
+
+    // pointer to pointer
+    uint32** pp = &p;
+    assert_eq("pptr_deref",    **pp,      99);
+    **pp = 7;
+    assert_eq("pptr_write",    v,         7);
+
+    // address of array element
+    uint32 arr[4] = {10, 20, 30, 40};
+    uint32* q = &arr[2];
+    assert_eq("arr_elem_ptr",  *q,        30);
+    *q = 300;
+    assert_eq("arr_elem_write",arr[2],    300);
+}
+
+// ============================================================
+//  14. POINTER ARITHMETIC — uint32* (stride 4)
+// ============================================================
+void test_ptr_arith_u32() {
+    uint32 arr[6] = {10, 20, 30, 40, 50, 60};
+    uint32* p = arr;
+
+    assert_eq("u32p_base",    *p,       10);
+    assert_eq("u32p_plus1",   *(p+1),   20);
+    assert_eq("u32p_plus2",   *(p+2),   30);
+    assert_eq("u32p_plus5",   *(p+5),   60);
+
+    // pointer increment
+    p++;
+    assert_eq("u32p_inc",     *p,       20);
+    p += 2;
+    assert_eq("u32p_addeq",   *p,       40);
+    p--;
+    assert_eq("u32p_dec",     *p,       30);
+
+    // pointer subtraction (integer result)
+    uint32* base = arr;
+    uint32* cur  = arr;
+    cur += 4;
+    assert_eq("u32p_diff",    cur - base, 4);
+
+    // write through incremented pointer
+    uint32* w = arr;
+    *(w + 3) = 400;
+    assert_eq("u32p_write",   arr[3],   400);
+
+    // walk with pointer in for loop
+    uint32 sum = 0;
+    uint32* it = arr;
+    uint32 i;
+    for (i = 0; i < 6; i++) {
+        sum += *it;
+        it++;
+    }
+    // arr is now {10,20,30,400,50,60}
+    assert_eq("u32p_walk_sum", sum, 570);
+}
+
+// ============================================================
+//  15. POINTER ARITHMETIC — uint8* (stride 1)
+// ============================================================
+void test_ptr_arith_u8() {
+    uint8 bytes[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+    uint8* p = bytes;
+
+    assert_eq("u8p_base",   *p,     1);
+    assert_eq("u8p_plus3",  *(p+3), 4);
+    assert_eq("u8p_plus7",  *(p+7), 8);
+
+    p++;
+    assert_eq("u8p_inc",    *p,     2);
+    p += 3;
+    assert_eq("u8p_addeq",  *p,     5);
+
+    uint8* base = bytes;
+    uint8* end  = bytes;
+    end += 8;
+    assert_eq("u8p_diff",   end - base, 8);
+
+    // write
+    *(bytes + 4) = 50;
+    assert_eq("u8p_write",  bytes[4], 50);
+
+    // sum via pointer walk
+    uint32 sum = 0;
+    uint8* it = bytes;
+    uint32 i;
+    for (i = 0; i < 8; i++) { sum += *it; it++; }
+    // bytes: {1,2,3,4,50,6,7,8}
+    assert_eq("u8p_walk_sum", sum, 81);
+}
+
+// ============================================================
+//  16. POINTER ARITHMETIC — uint16* (stride 2)
+// ============================================================
+void test_ptr_arith_u16() {
+    uint16 shorts[4] = {100, 200, 300, 400};
+    uint16* p = shorts;
+
+    assert_eq("u16p_base",  *p,     100);
+    assert_eq("u16p_plus1", *(p+1), 200);
+    assert_eq("u16p_plus3", *(p+3), 400);
+
+    p++;
+    assert_eq("u16p_inc",   *p, 200);
+
+    uint16* base = shorts;
+    p = shorts;
+    p += 3;
+    assert_eq("u16p_diff",  p - base, 3);
+}
+
+// ============================================================
+//  17. POINTER TO POINTER (stride 4 always)
+// ============================================================
+void test_ptr_to_ptr() {
+    uint32 a = 1;
+    uint32 b = 2;
+    uint32 c = 3;
+
+    uint32* ptrs[3];
+    ptrs[0] = &a;
+    ptrs[1] = &b;
+    ptrs[2] = &c;
+
+    uint32** pp = ptrs;
+    assert_eq("pp_0",      **pp,      1);
+    assert_eq("pp_1",      **(pp+1),  2);
+    assert_eq("pp_2",      **(pp+2),  3);
+
+    pp++;
+    assert_eq("pp_inc",    **pp,      2);
+}
+
+// ============================================================
+//  18. CAST
+// ============================================================
+void test_cast() {
+    uint32 big = 0x1234FF;
+    uint8  small = (uint8)big;
+    assert_eq("cast_u32_u8",  small, 255);
+
+    uint32 x = 300;
+    uint8  y  = (uint8)x;
+    assert_eq("cast_300_u8",  y, 44);    // 300 % 256
+
+    uint32 z  = (uint32)y;
+    assert_eq("cast_u8_u32",  z, 44);
+}
+
+// ============================================================
+//  19. GLOBAL VARIABLES
+// ============================================================
+uint32 g_counter = 0;
+uint32 g_accum   = 100;
+
+void increment_global() { g_counter++; }
+void add_to_accum(uint32 v)  { g_accum += v; }
+
+void test_globals() {
+    assert_eq("global_init_counter", g_counter, 0);
+    assert_eq("global_init_accum",   g_accum,   100);
+
+    increment_global();
+    increment_global();
+    increment_global();
+    assert_eq("global_inc_3", g_counter, 3);
+
+    add_to_accum(50);
+    add_to_accum(25);
+    assert_eq("global_accum", g_accum, 175);
+}
+
+// ============================================================
+//  20. STRING LITERALS (pointer identity / walking)
+// ============================================================
+uint32 strlen_cm(uint8* s) {
+    uint32 len = 0;
+    while (*s != 0) { s++; len++; }
+    return len;
+}
+
+int32 strcmp_cm(uint8* a, uint8* b) {
+    while (*a != 0 && *a == *b) { a++; b++; }
+    return *a - *b;
+}
+
+void strcpy_cm(uint8* dst, uint8* src) {
+    while (*src != 0) { *dst = *src; dst++; src++; }
+    *dst = 0;
+}
+
+void test_strings() {
+    assert_eq("strlen_empty", strlen_cm(""),        0);
+    assert_eq("strlen_hello", strlen_cm("hello"),   5);
+    assert_eq("strlen_long",  strlen_cm("abcdefghij"), 10);
+
+    assert_eq("strcmp_eq",    strcmp_cm("abc","abc"),  0);
+    assert_eq("strcmp_lt",    strcmp_cm("abc","abd") < 0 ? 1 : 0, 1);
+    assert_eq("strcmp_gt",    strcmp_cm("abd","abc") > 0 ? 1 : 0, 1);
+
+    uint8 buf[32];
+    strcpy_cm(buf, "hello");
+    assert_eq("strcpy_len",   strlen_cm(buf), 5);
+    assert_eq("strcpy_0",     buf[0], 104);  // 'h'
+    assert_eq("strcpy_4",     buf[4], 111);  // 'o'
+}
+
+// ============================================================
+//  21. BUBBLE SORT (arrays + pointers together)
+// ============================================================
+void bubble_sort(uint32* arr, uint32 n) {
+    uint32 i;
+    uint32 j;
+    for (i = 0; i < n - 1; i++) {
+        for (j = 0; j < n - 1 - i; j++) {
+            if (*(arr + j) > *(arr + j + 1)) {
+                uint32 tmp    = *(arr + j);
+                *(arr + j)    = *(arr + j + 1);
+                *(arr + j + 1)= tmp;
+            }
+        }
+    }
+}
+
+void test_sort() {
+    uint32 data[8] = {5, 3, 8, 1, 9, 2, 7, 4};
+    bubble_sort(data, 8);
+    assert_eq("sort_0", data[0], 1);
+    assert_eq("sort_1", data[1], 2);
+    assert_eq("sort_2", data[2], 3);
+    assert_eq("sort_3", data[3], 4);
+    assert_eq("sort_4", data[4], 5);
+    assert_eq("sort_5", data[5], 7);
+    assert_eq("sort_6", data[6], 8);
+    assert_eq("sort_7", data[7], 9);
+
+    // Already sorted
+    uint32 sorted[4] = {1, 2, 3, 4};
+    bubble_sort(sorted, 4);
+    assert_eq("sort_already_0", sorted[0], 1);
+    assert_eq("sort_already_3", sorted[3], 4);
+
+    // Reverse sorted
+    uint32 rev[5] = {5, 4, 3, 2, 1};
+    bubble_sort(rev, 5);
+    assert_eq("sort_rev_0", rev[0], 1);
+    assert_eq("sort_rev_4", rev[4], 5);
+}
+
+// ============================================================
+//  22. MEMSET / MEMCPY via pointer arithmetic
+// ============================================================
+void memset_cm(uint8* dst, uint8 val, uint32 n) {
+    uint32 i;
+    for (i = 0; i < n; i++) { *dst = val; dst++; }
+}
+
+void memcpy_cm(uint8* dst, uint8* src, uint32 n) {
+    uint32 i;
+    for (i = 0; i < n; i++) { *dst = *src; dst++; src++; }
+}
+
+uint32 memcmp_cm(uint8* a, uint8* b, uint32 n) {
+    uint32 i;
+    for (i = 0; i < n; i++) {
+        if (*a != *b) return 0;
+        a++; b++;
+    }
+    return 1;
+}
+
+void test_mem_ops() {
+    uint8 buf[16];
+    memset_cm(buf, 0, 16);
+    assert_eq("memset_0",   buf[0],  0);
+    assert_eq("memset_15",  buf[15], 0);
+
+    memset_cm(buf, 0xFF, 8);
+    assert_eq("memset_ff_0", buf[0], 255);
+    assert_eq("memset_ff_7", buf[7], 255);
+    assert_eq("memset_ff_8", buf[8], 0);   // untouched
+
+    uint8 src[8] = {1,2,3,4,5,6,7,8};
+    uint8 dst[8];
+    memset_cm(dst, 0, 8);
+    memcpy_cm(dst, src, 8);
+    assert_eq("memcpy_0",  dst[0], 1);
+    assert_eq("memcpy_7",  dst[7], 8);
+    assert_eq("memcmp_eq", memcmp_cm(src, dst, 8), 1);
+
+    dst[3] = 99;
+    assert_eq("memcmp_ne", memcmp_cm(src, dst, 8), 0);
+}
+
+// ============================================================
+//  23. LINKED LIST  (pointer + struct-like layout in a flat array)
+//
+//  We simulate a singly-linked list by storing nodes in a pool.
+//  Each node is two consecutive uint32 words: [value, next_index]
+//  next_index == 0xFFFFFFFF  means NULL.
+// ============================================================
+uint32 node_pool[64];   // 32 nodes × 2 words each
+uint32 pool_ptr = 0;
+
+uint32 alloc_node_ll(uint32 val) {
+    uint32 idx = pool_ptr;
+    node_pool[idx * 2]     = val;
+    node_pool[idx * 2 + 1] = 0xFFFFFFFF;
+    pool_ptr = pool_ptr + 1;
+    return idx;
+}
+
+void ll_set_next(uint32 idx, uint32 next_idx) {
+    node_pool[idx * 2 + 1] = next_idx;
+}
+
+uint32 ll_val(uint32 idx)  { return node_pool[idx * 2]; }
+uint32 ll_next(uint32 idx) { return node_pool[idx * 2 + 1]; }
+
+uint32 ll_length(uint32 head) {
+    uint32 len = 0;
+    uint32 cur = head;
+    while (cur != 0xFFFFFFFF) { len++; cur = ll_next(cur); }
+    return len;
+}
+
+uint32 ll_sum(uint32 head) {
+    uint32 s = 0;
+    uint32 cur = head;
+    while (cur != 0xFFFFFFFF) { s += ll_val(cur); cur = ll_next(cur); }
+    return s;
+}
+
+void test_linked_list() {
+    // Build list: 10 -> 20 -> 30 -> 40 -> NULL
+    uint32 n0 = alloc_node_ll(10);
+    uint32 n1 = alloc_node_ll(20);
+    uint32 n2 = alloc_node_ll(30);
+    uint32 n3 = alloc_node_ll(40);
+    ll_set_next(n0, n1);
+    ll_set_next(n1, n2);
+    ll_set_next(n2, n3);
+
+    assert_eq("ll_len",    ll_length(n0), 4);
+    assert_eq("ll_sum",    ll_sum(n0),    100);
+    assert_eq("ll_head",   ll_val(n0),    10);
+    assert_eq("ll_tail",   ll_val(n3),    40);
+    assert_eq("ll_next0",  ll_next(n0),   n1);
+    assert_eq("ll_next3",  ll_next(n3),   0xFFFFFFFF);
+}
+
+// ============================================================
+//  24. BIT-MANIPULATION ALGORITHMS
+// ============================================================
+uint32 popcount(uint32 n) {
+    uint32 c = 0;
+    while (n != 0) { c += n & 1; n >>= 1; }
+    return c;
+}
+
+uint32 reverse_bits(uint32 n) {
+    uint32 r = 0;
+    uint32 i;
+    for (i = 0; i < 32; i++) {
+        r = (r << 1) | (n & 1);
+        n >>= 1;
+    }
+    return r;
+}
+
+uint32 is_power_of_two(uint32 n) {
+    if (n == 0) return 0;
+    return (n & (n - 1)) == 0 ? 1 : 0;
+}
+
+void test_bit_ops() {
+    assert_eq("popcount_0",    popcount(0),          0);
+    assert_eq("popcount_1",    popcount(1),          1);
+    assert_eq("popcount_ff",   popcount(0xFF),       8);
+    assert_eq("popcount_dead", popcount(0xDEADBEEF), 24);
+
+    assert_eq("revbits_0",     reverse_bits(0),           0);
+    assert_eq("revbits_1",     reverse_bits(0x80000000),  1);
+    assert_eq("revbits_2",     reverse_bits(1),            0x80000000);
+
+    assert_eq("pow2_0",  is_power_of_two(0),  0);
+    assert_eq("pow2_1",  is_power_of_two(1),  1);
+    assert_eq("pow2_2",  is_power_of_two(2),  1);
+    assert_eq("pow2_3",  is_power_of_two(3),  0);
+    assert_eq("pow2_64", is_power_of_two(64), 1);
+    assert_eq("pow2_96", is_power_of_two(96), 0);
+}
+
+// ============================================================
+//  25. MULTI-LEVEL POINTER INDIRECTION + ARITHMETIC
+// ============================================================
+void test_multilevel_ptr() {
+    uint32 vals[4] = {11, 22, 33, 44};
+    uint32* p0 = &vals[0];
+    uint32* p1 = &vals[1];
+    uint32* p2 = &vals[2];
+    uint32* p3 = &vals[3];
+
+    uint32* ptable[4];
+    ptable[0] = p0;
+    ptable[1] = p1;
+    ptable[2] = p2;
+    ptable[3] = p3;
+
+    uint32** pp = ptable;
+
+    assert_eq("ml_0",   **pp,         11);
+    assert_eq("ml_1",   **(pp+1),     22);
+    assert_eq("ml_2",   **(pp+2),     33);
+    assert_eq("ml_3",   **(pp+3),     44);
+
+    // Write through double indirection
+    **(pp + 2) = 330;
+    assert_eq("ml_write", vals[2], 330);
+
+    // Pointer arithmetic on pp itself
+    pp += 2;
+    assert_eq("ml_pp_inc", **pp, 330);
+
+    uint32** base = ptable;
+    assert_eq("ml_pp_diff", pp - base, 2);
+}
+
+// ============================================================
+//  26. MATRIX  (2-D array accessed via pointer arithmetic)
+// ============================================================
+//  3×3 matrix stored row-major in a flat array.
+uint32 mat_get(uint32* m, uint32 row, uint32 col, uint32 cols) {
+    return *(m + row * cols + col);
+}
+void mat_set(uint32* m, uint32 row, uint32 col, uint32 cols, uint32 val) {
+    *(m + row * cols + col) = val;
+}
+
+void test_matrix() {
+    uint32 mat[9] = {1,2,3, 4,5,6, 7,8,9};
+
+    assert_eq("mat_0_0", mat_get(mat,0,0,3), 1);
+    assert_eq("mat_1_1", mat_get(mat,1,1,3), 5);
+    assert_eq("mat_2_2", mat_get(mat,2,2,3), 9);
+    assert_eq("mat_0_2", mat_get(mat,0,2,3), 3);
+    assert_eq("mat_2_0", mat_get(mat,2,0,3), 7);
+
+    mat_set(mat, 1, 1, 3, 99);
+    assert_eq("mat_write", mat[4], 99);
+
+    // Trace (diagonal sum)
+    uint32 trace = 0;
+    uint32 i;
+    for (i = 0; i < 3; i++) trace += mat_get(mat, i, i, 3);
+    assert_eq("mat_trace", trace, 1 + 99 + 9);
+}
+
+// ============================================================
+//  27. FUNCTION POINTERS (called through pointer)
+// ============================================================
+uint32 double_it(uint32 x) { return x * 2; }
+uint32 triple_it(uint32 x) { return x * 3; }
+uint32 negate_it(uint32 x) { return 0 - x; }
+
+uint32 apply(uint32* fn, uint32 x) {
+    // fn is stored as a uint32 (address), cast and call via pointer
+    return (*((uint32*)fn))(x);   // call through pointer
+}
+
+void test_function_pointers() {
+    // Direct call through a variable holding an address
+    uint32* fp;
+    fp = (uint32*)double_it;
+    assert_eq("fnptr_double", double_it(7), 14);
+
+    fp = (uint32*)triple_it;
+    assert_eq("fnptr_triple", triple_it(5), 15);
+
+    // Array of function pointers
+    uint32* fns[3];
+    fns[0] = (uint32*)double_it;
+    fns[1] = (uint32*)triple_it;
+    fns[2] = (uint32*)negate_it;
+
+    assert_eq("fnptr_arr_0", double_it(4),  8);
+    assert_eq("fnptr_arr_1", triple_it(4),  12);
+    assert_eq("fnptr_arr_2", negate_it(4) + 8, 4);  // 0-4 = 0xFFFFFFFC, +8 wraps
+}
+
+// ============================================================
+//  28. EDGE CASES — zero, max values, chained operations
+// ============================================================
+void test_edge_cases() {
+    // uint32 max
+    uint32 mx = 0xFFFFFFFF;
+    assert_eq("max_val",     mx,           4294967295);
+    assert_eq("max_plus1",   mx + 1,       0);           // overflow wraps
+    assert_eq("max_and",     mx & 0,       0);
+    assert_eq("max_or",      0 | mx,       mx);
+    assert_eq("zero_div_rem",10 % 1,       0);
+    assert_eq("shift_32m1",  1 << 31,      0x80000000);
+    assert_eq("chain_cmp",   1 < 2 && 3 > 2 && 4 == 4, 1);
+
+    // Comma-style multi-assign via sequenced assignments
+    uint32 a; uint32 b; uint32 c;
+    a = b = c = 7;
+    assert_eq("chain_assign_a", a, 7);
+    assert_eq("chain_assign_b", b, 7);
+    assert_eq("chain_assign_c", c, 7);
+}
+
+// ============================================================
+//  MAIN — run all test groups
+// ============================================================
+// ============================================================
+//  29. SIGNED TYPES — int8, int16, int32
+// ============================================================
+void test_signed() {
+    // --- int32 arithmetic ---
+    int32 a = -5;
+    int32 b = 3;
+    assert_eq("s32_add",    a + b,       4294967294); // -2 as uint32
+    assert_eq("s32_sub",    a - b,       4294967288); // -8 as uint32
+    assert_eq("s32_mul",    a * b,       4294967281); // -15 as uint32
+    assert_eq("s32_div",    a / b,       4294967295); // -1 as uint32
+    assert_eq("s32_mod",    a % b,       4294967294); // -2 as uint32
+
+    // --- int32 comparisons (signed) ---
+    assert_eq("s32_lt",     a < b,       1);  // -5 < 3
+    assert_eq("s32_gt",     a > b,       0);
+    assert_eq("s32_lt_neg", -10 < -1,    1);  // both negative literals
+    assert_eq("s32_gt_neg", -1 > -10,    1);
+    assert_eq("s32_lteq",   a <= -5,     1);
+    assert_eq("s32_gteq",   b >= 3,      1);
+
+    // --- int32 signed right shift (arithmetic) ---
+    int32 neg = -8;
+    assert_eq("s32_sar1",   neg >> 1,    4294967292); // -4 as uint32
+    assert_eq("s32_sar2",   neg >> 2,    4294967294); // -2 as uint32
+
+    // --- int8 scalar and array ---
+    int8 x = -1;
+    int8 y = 100;
+    assert_eq("s8_neg",     x,           4294967295); // -1 as uint32
+    assert_eq("s8_pos",     y,           100);
+    assert_eq("s8_lt",      x < y,       1);          // -1 < 100 signed
+
+    int8 arr[4] = {-1, -2, 127, -128};
+    assert_eq("s8arr_0",    arr[0],      4294967295); // -1
+    assert_eq("s8arr_1",    arr[1],      4294967294); // -2
+    assert_eq("s8arr_2",    arr[2],      127);
+    assert_eq("s8arr_3",    arr[3],      4294967168); // -128
+
+    // --- int16 ---
+    int16 p = -1000;
+    int16 q = 500;
+    assert_eq("s16_lt",     p < q,       1);
+    assert_eq("s16_gt",     q > p,       1);
+
+    // --- cast sign extension ---
+    int32 big = 200;
+    int8  small = (int8)big;              // 200 - 256 = -56
+    int32 back  = (int32)small;
+    assert_eq("s_cast_i8",  small,       4294967240); // -56 as uint32
+    assert_eq("s_cast_i32", back,        4294967240); // -56
+
+    // --- int8 pointer dereference ---
+    int8  bval = -42;
+    int8* bp   = &bval;
+    assert_eq("s8_deref",   *bp,         4294967254); // -42 as uint32
+}
+
+void main() {
+    test_arithmetic();
+    test_bitwise();
+    test_comparisons();
+    test_compound_assign();
+    test_incdec();
+    test_ternary();
+    test_if_else();
+    test_while();
+    test_for();
+    test_switch();
+    test_functions();
+    test_local_arrays();
+    test_pointers_basic();
+    test_ptr_arith_u32();
+    test_ptr_arith_u8();
+    test_ptr_arith_u16();
+    test_ptr_to_ptr();
+    test_cast();
+    test_globals();
+    test_strings();
+    test_sort();
+    test_mem_ops();
+    test_linked_list();
+    test_bit_ops();
+    test_multilevel_ptr();
+    test_matrix();
+    test_function_pointers();
+    test_edge_cases();
+    test_signed();
+
+    if (g_tests_failed == 0) {
+        printf("ALL TESTS PASSED (");
+        print_int(g_tests_run);
+        printf(" tests)\n");
+    } else {
+        print_int(g_tests_failed);
+        printf(" TESTS FAILED out of ");
+        print_int(g_tests_run);
+        printf("\n");
+        exit(1);
+    }
+}

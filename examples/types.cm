@@ -1,0 +1,50 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// types.cm - Type casting and different integer sizes
+// Demonstrates: different integer types, casting, overflow behavior
+
+void printf(uint8 *fmt);
+
+int32 main(void) {
+    // Different integer sizes
+    uint8  byte_val  = 255;
+    uint16 word_val  = 65535;
+    uint32 dword_val = 4294967295;
+    
+    int8  sbyte_val  = -128;
+    int16 sword_val  = -32768;
+    int32 sdword_val = -2147483648;
+    
+    printf("Unsigned types:\n");
+    printf("  uint8:  %d\n", byte_val);
+    printf("  uint16: %d\n", word_val);
+    printf("  uint32: %u\n", dword_val);
+    
+    printf("\nSigned types:\n");
+    printf("  int8:  %d\n", sbyte_val);
+    printf("  int16: %d\n", sword_val);
+    printf("  int32: %d\n", sdword_val);
+    
+    // Type casting
+    printf("\nType casting:\n");
+    int32 large = 1000;
+    uint8 small = (uint8)large;
+    printf("  (uint8)1000 = %d (truncated to 8 bits)\n", small);
+    
+    int32 value = 298;
+    uint8 truncated = (uint8)value;
+    printf("  (uint8)298 = %d (298 %% 256 = 42)\n", truncated);
+    
+    // Sign extension
+    int8 neg = -1;
+    int32 extended = neg;
+    printf("\nSign extension:\n");
+    printf("  int8(-1) extended to int32: %d\n", extended);
+    
+    // Unsigned to signed
+    uint8 unsigned_val = 200;
+    int8 signed_val = (int8)unsigned_val;
+    printf("\nUnsigned to signed:\n");
+    printf("  (int8)200 = %d (interpreted as signed)\n", signed_val);
+    
+    return 0;
+}

@@ -1,0 +1,60 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// bitwise.cm - Bitwise operations
+// Demonstrates: bitwise operators, bit manipulation, shifts
+
+void printf(uint8 *fmt);
+
+void print_binary(uint32 n) {
+    printf("0b");
+    for (int32 i = 31; i >= 0; i = i - 1) {
+        printf("%d", (n >> i) & 1);
+        if (i % 4 == 0 && i != 0) printf("_");
+    }
+}
+
+int32 count_set_bits(uint32 n) {
+    int32 count = 0;
+    while (n) {
+        count = count + (n & 1);
+        n = n >> 1;
+    }
+    return count;
+}
+
+uint32 reverse_bits(uint32 n) {
+    uint32 result = 0;
+    for (int32 i = 0; i < 32; i = i + 1) {
+        result = result << 1;
+        result = result | (n & 1);
+        n = n >> 1;
+    }
+    return result;
+}
+
+int32 is_power_of_two(uint32 n) {
+    return n && ((n & (n - 1)) == 0);
+}
+
+int32 main(void) {
+    uint32 a = 0xAB;
+    uint32 b = 0x55;
+    
+    printf("a = %d = ", a); print_binary(a); printf("\n");
+    printf("b = %d = ", b); print_binary(b); printf("\n");
+    
+    printf("\nBitwise AND: %d = ", a & b); print_binary(a & b); printf("\n");
+    printf("Bitwise OR:  %d = ", a | b); print_binary(a | b); printf("\n");
+    printf("Bitwise XOR: %d = ", a ^ b); print_binary(a ^ b); printf("\n");
+    printf("Bitwise NOT: %d = ", ~a); print_binary(~a); printf("\n");
+    
+    printf("\nLeft shift (a << 2):  %d\n", a << 2);
+    printf("Right shift (a >> 2): %d\n", a >> 2);
+    
+    printf("\nSet bits in a: %d\n", count_set_bits(a));
+    printf("Set bits in b: %d\n", count_set_bits(b));
+    
+    printf("\nIs 64 power of two? %d\n", is_power_of_two(64));
+    printf("Is 63 power of two? %d\n", is_power_of_two(63));
+    
+    return 0;
+}

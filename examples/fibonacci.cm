@@ -1,0 +1,23 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// fibonacci.cm - Calculate Fibonacci numbers
+// Demonstrates: recursion, function calls, conditionals
+
+void printf(uint8 *fmt);
+
+int32 fibonacci(int32 n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+int32 main(void) {
+    printf("Fibonacci sequence:\n");
+    
+    for (int32 i = 0; i < 15; i = i + 1) {
+        int32 fib = fibonacci(i);
+        printf("fib(%d) = %d\n", i, fib);
+    }
+    
+    return 0;
+}

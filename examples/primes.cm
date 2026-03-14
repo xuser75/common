@@ -1,0 +1,68 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// primes.cm - Prime number calculator
+// Demonstrates: algorithms, loops, mathematical operations
+
+void printf(uint8 *fmt);
+
+int32 is_prime(int32 n) {
+    if (n <= 1) return 0;
+    if (n <= 3) return 1;
+    if (n % 2 == 0 || n % 3 == 0) return 0;
+    
+    int32 i = 5;
+    while (i * i <= n) {
+        if (n % i == 0 || n % (i + 2) == 0) {
+            return 0;
+        }
+        i = i + 6;
+    }
+    return 1;
+}
+
+int32 nth_prime(int32 n) {
+    if (n == 1) return 2;
+    
+    int32 count = 1;
+    int32 candidate = 3;
+    
+    while (count < n) {
+        if (is_prime(candidate)) {
+            count = count + 1;
+        }
+        candidate = candidate + 2;
+    }
+    
+    return candidate - 2;
+}
+
+int32 count_primes_under(int32 limit) {
+    int32 count = 0;
+    for (int32 i = 2; i < limit; i = i + 1) {
+        if (is_prime(i)) {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+int32 main(void) {
+    printf("First 20 prime numbers:\n");
+    for (int32 i = 1; i <= 20; i = i + 1) {
+        printf("%d ", nth_prime(i));
+        if (i % 10 == 0) printf("\n");
+    }
+    printf("\n");
+    
+    int32 limit = 100;
+    int32 count = count_primes_under(limit);
+    printf("\nThere are %d primes less than %d\n", count, limit);
+    
+    printf("\nPrime check:\n");
+    int32 test_nums[8] = { 1, 2, 15, 17, 97, 100, 101, 121 };
+    for (int32 i = 0; i < 8; i = i + 1) {
+        int32 num = test_nums[i];
+        printf("  %d is %s\n", num, is_prime(num) ? "prime" : "not prime");
+    }
+    
+    return 0;
+}

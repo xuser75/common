@@ -1,0 +1,70 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// strings.cm - String manipulation
+// Demonstrates: string literals, character arrays, string functions
+
+void printf(uint8 *fmt);
+
+int32 str_len(uint8 *s) {
+    int32 len = 0;
+    while (s[len]) {
+        len = len + 1;
+    }
+    return len;
+}
+
+void str_copy(uint8 *dest, uint8 *src) {
+    int32 i = 0;
+    while (src[i]) {
+        dest[i] = src[i];
+        i = i + 1;
+    }
+    dest[i] = 0;
+}
+
+int32 str_cmp(uint8 *s1, uint8 *s2) {
+    int32 i = 0;
+    while (s1[i] && s2[i]) {
+        if (s1[i] != s2[i]) {
+            return s1[i] - s2[i];
+        }
+        i = i + 1;
+    }
+    return s1[i] - s2[i];
+}
+
+void str_reverse(uint8 *s) {
+    int32 len = str_len(s);
+    int32 i = 0;
+    int32 j = len - 1;
+    while (i < j) {
+        uint8 temp = s[i];
+        s[i] = s[j];
+        s[j] = temp;
+        i = i + 1;
+        j = j - 1;
+    }
+}
+
+int32 main(void) {
+    uint8 *msg = "Hello, World!";
+    printf("Original string: %s\n", msg);
+    printf("Length: %d\n", str_len(msg));
+    
+    uint8 buffer[100];
+    str_copy(buffer, msg);
+    printf("Copied string: %s\n", buffer);
+    
+    str_reverse(buffer);
+    printf("Reversed: %s\n", buffer);
+    
+    uint8 *s1 = "apple";
+    uint8 *s2 = "banana";
+    uint8 *s3 = "apple";
+    
+    printf("\nString comparison:\n");
+    printf("  '%s' vs '%s': %d\n", s1, s2, str_cmp(s1, s2));
+    printf("  '%s' vs '%s': %d\n", s1, s3, str_cmp(s1, s3));
+    printf("  '%s' vs '%s': %d\n", s2, s1, str_cmp(s2, s1));
+    
+    return 0;
+}

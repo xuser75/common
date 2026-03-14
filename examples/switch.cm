@@ -1,0 +1,65 @@
+// Public domain / CC0. Use freely for any purpose. RoyR 2026
+// switch.cm - Switch statement demonstration
+// Demonstrates: switch/case, default, break, fall-through
+
+void printf(uint8 *fmt);
+
+uint8 *get_day_name(int32 day) {
+    switch (day) {
+        case 0: return "Sunday";
+        case 1: return "Monday";
+        case 2: return "Tuesday";
+        case 3: return "Wednesday";
+        case 4: return "Thursday";
+        case 5: return "Friday";
+        case 6: return "Saturday";
+        default: return "Invalid day";
+    }
+}
+
+int32 is_weekend(int32 day) {
+    switch (day) {
+        case 0:
+        case 6:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+uint8 *get_grade(int32 score) {
+    int32 category = score / 10;
+    
+    switch (category) {
+        case 10:
+        case 9:
+            return "A";
+        case 8:
+            return "B";
+        case 7:
+            return "C";
+        case 6:
+            return "D";
+        default:
+            return "F";
+    }
+}
+
+int32 main(void) {
+    printf("Days of the week:\n");
+    for (int32 i = 0; i < 8; i = i + 1) {
+        printf("  Day %d: %s", i, get_day_name(i));
+        if (is_weekend(i)) {
+            printf(" (weekend!)");
+        }
+        printf("\n");
+    }
+    
+    printf("\nGrade calculator:\n");
+    int32 scores[6] = { 95, 87, 76, 65, 54, 100 };
+    for (int32 i = 0; i < 6; i = i + 1) {
+        printf("  Score %d: Grade %s\n", scores[i], get_grade(scores[i]));
+    }
+    
+    return 0;
+}
