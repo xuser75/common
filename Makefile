@@ -49,7 +49,7 @@ $(EXAMPLES): %: $(EXAMPLES_DIR)/%.cm $(COMPILER)
 	@echo "Building $@..."
 	./$(COMPILER) $(EXAMPLES_DIR)/$@.cm $@.asm
 	$(NASM) $(NASMFLAGS) $@.asm -o $@.o
-	$(LD) $(LDFLAGS) $@.o -o $@
+	$(LD) $(LDFLAGS) $@.o -o $@ -no-pie
 	@echo "Built $@ successfully"
 
 # Run all examples
