@@ -70,6 +70,12 @@ clean:
 	rm -f /tmp/test.cm /tmp/test.asm /tmp/test.o /tmp/test /tmp/test.out /tmp/test.err
 	@echo "Cleaned all generated files"
 
+# Install to /usr/local/
+.PHONY: install
+install:
+	install common /usr/local/bin/
+	@echo Installed common to /usr/local/bin/
+
 # Help
 .PHONY: help
 help:
@@ -81,6 +87,7 @@ help:
 	@echo "  examples      - Build all example programs"
 	@echo "  run-examples  - Build and run all examples"
 	@echo "  clean         - Remove all generated files"
+	@echo "  install       - Install to /usr/local/bin"
 	@echo ""
 	@echo "Build individual examples:"
 	@echo "  make hello"
