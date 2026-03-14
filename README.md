@@ -311,6 +311,7 @@ gcc -m32 main.c common.o -o program
 ├── README_TESTS.md       # Test suite documentation
 │
 ├── test_runner.c         # Automated test harness
+├── test_suite.cm         # Test suite
 │
 └── examples/             # Example programs
     ├── hello.cm
