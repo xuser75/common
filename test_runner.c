@@ -72,7 +72,7 @@ static void run_test(Test *t) {
     }
     
     /* Link */
-    if (run_command("gcc -m32 /tmp/test.o -o /tmp/test 2>/tmp/test.err -no-pie") != 0) {
+    if (run_command("./commonl /tmp/test.o -o /tmp/test 2>/tmp/test.err") != 0) {
         printf("FAIL (linker error)\n");
         test_failed++;
         return;

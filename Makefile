@@ -4,8 +4,8 @@ CC = gcc
 CFLAGS = -std=c99 -Wall -O2
 NASM = nasm
 NASMFLAGS = -f elf32
-LD = gcc
-LDFLAGS = -m32
+LD = ./commonl
+LDFLAGS =
 
 # Compiler
 COMPILER = common
@@ -49,7 +49,7 @@ $(EXAMPLES): %: $(EXAMPLES_DIR)/%.cm $(COMPILER)
 	@echo "Building $@..."
 	./$(COMPILER) $(EXAMPLES_DIR)/$@.cm $@.asm
 	$(NASM) $(NASMFLAGS) $@.asm -o $@.o
-	$(LD) $(LDFLAGS) $@.o -o $@ -no-pie
+	$(LD) $(LDFLAGS) $@.o -o $@
 	@echo "Built $@ successfully"
 
 # Run all examples

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Public domain / CC0. Use freely for any purpose. RoyR 2026
+
+GCC_NO_PIE=1
+echo 'int main() {}' | gcc -E -no-pie - -o /dev/null || GCC_NO_PIE=0
+
+if [ $GCC_NO_PIE = 1 ];then
+    gcc -m32 -no-pie "$@"
+else
+    gcc -m32 "$@"
+fi
