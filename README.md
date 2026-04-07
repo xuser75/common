@@ -329,19 +329,30 @@ gcc -m32 main.c common.o -o program
     └── linkedlist.cm
 ```
 
-## License
+## License & Educational Purpose
 
-Public domain / CC0. Use freely for any purpose.
+### Public Domain / CC0
+
+This project is dedicated to the public domain under the CC0 1.0 Universal license. This means you can copy, modify, distribute, and perform the work, even for commercial purposes, all without asking permission.
+
+### Why Public Domain?
+
+- **Ease of Use:** - By removing all licensing restrictions, students can freely integrate code snippets from common.c into their own projects without legal overhead or attribution requirements.
+- **Educational Accessibility:** - The compiler is designed to be a "pure" learning resource. Its single-file implementation is intended to be read and modified as if it were a textbook example.
+No Barriers: Just as the language requires "zero external dependencies," its legal status requires no compliance tracking, making it ideal for classroom settings and open-source forks.
+- **Simplicity:** - A complex license would contradict the project's philosophy of "simplicity over features"
 
 ## Credits
 
 Inspired by:
+
 - **C** - Dennis Ritchie and Brian Kernighan
 - **chibicc** - Rui Ueyama's educational C compiler
 - **8cc** - Rui Ueyama's C compiler
 - **tcc** - Fabrice Bellard's Tiny C Compiler
 
 Built for programmers who value:
+
 - Simplicity over features
 - Control over convenience
 - Learning over abstraction
