@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Public domain / CC0. Use freely for any purpose. RoyR 2026
 
 GCC_NO_PIE=1
