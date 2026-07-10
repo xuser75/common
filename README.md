@@ -302,7 +302,7 @@ gcc -m32 main.c common.o -o program
 ```
 .
 ├── common.c              # Compiler source (2000 LOC)
-├── commonl               # Linker
+├── commonl               # Linker Script
 ├── Makefile              # Build automation
 ├── run_tests.sh          # Quick test script
 │

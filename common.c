@@ -46,7 +46,7 @@ typedef enum {
 typedef struct {
   TKind   kind;
   char    str[512];   /* identifier / string value — 512 to match str_val */
-  int     slen;       /* FIX(bug2+3): explicit byte count for str, excl. terminator */
+  int     slen;       /* explicit byte count for str, excl. terminator */
   long    num;        /* numeric value */
   int     line;       /* source line where token starts */
 } Token;
@@ -114,7 +114,7 @@ static void next(void) {
   if (c == '"') {
     src_pos++; int i=0;
     while (src[src_pos] && src[src_pos]!='"') {
-      /* FIX(bug3): bounds check before writing into tok.str */
+      /* bounds check before writing into tok.str */
       if (i >= 511) die("string literal too long");
       if (src[src_pos]=='\\') {
 	src_pos++;
@@ -130,7 +130,7 @@ static void next(void) {
     }
     if (src[src_pos]=='"') src_pos++;
     tok.str[i]=0;
-    tok.slen=i;     /* FIX(bug2): record true byte count */
+    tok.slen=i;     /* record true byte count */
     tok.kind=TK_STR;
     return;
   }
@@ -139,7 +139,7 @@ static void next(void) {
   if (isalpha((unsigned char)c) || c=='_') {
     int i=0;
     while (isalnum((unsigned char)src[src_pos]) || src[src_pos]=='_') {
-      /* FIX(bug3): bounds check for identifiers too */
+      /* bounds check for identifiers too */
       if (i >= 511) die("identifier too long");
       tok.str[i++]=src[src_pos++];
     }
